@@ -1,13 +1,15 @@
 package com.example.demo.Client;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
 
 @Component
 public class SteamClient {
@@ -31,9 +33,7 @@ public class SteamClient {
         String json = restTemplate.getForObject(urlModelo, String.class);
         JsonNode root = objectMapper.readTree(json);
 
-        JsonNode responseNode = root.path("response");
-
-        String steamID = responseNode.path("steamid").asText();
+        String steamID = root.path("reponse").path("steamid").asText();
 
         return steamID;
     }
@@ -48,8 +48,7 @@ public class SteamClient {
         String json = restTemplate.getForObject(urlRequest, String.class);
         JsonNode root = objectMapper.readTree(json);
 
-        JsonNode responseNode = root.path("response");
-        JsonNode listaJogos = responseNode.path("games");
+        JsonNode listaJogos = root.path("response").path("games");
 
         return listaJogos;
     }
@@ -58,10 +57,9 @@ public class SteamClient {
         final String urlRequest = String.format("https://store.steampowered.com/api/appdetails?appids=%d", appId);
 
         String json = restTemplate.getForObject(urlRequest, String.class);
-        JsonNode root = objectMapper.readTree(json);
 
-        JsonNode appNode = root.path(String.valueOf(appId));
-        JsonNode dataNode = appNode.path("data");
+        JsonNode root = objectMapper.readTree(json);
+        JsonNode dataNode = root.path(String.valueOf(appId)).path("data");
 
         return dataNode;
     }
@@ -79,15 +77,14 @@ public class SteamClient {
         return friendsNode;
     }
 
-    public JsonNode geListaDesejo(String steamId) throws JsonMappingException, JsonProcessingException {
+    public JsonNode getListaDesejo(String steamId) throws JsonMappingException, JsonProcessingException {
         final String urlRequest = String.format("https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=%s", steamId);
 
         String json = restTemplate.getForObject(urlRequest, String.class);
 
         JsonNode root = objectMapper.readTree(json);
 
-        JsonNode response = root.path("response");
-        JsonNode listaDesejos = response.path("items");
+        JsonNode listaDesejos = root.path("response").path("items");
 
         return listaDesejos;
     }
@@ -105,4 +102,25 @@ public class SteamClient {
         return infoConta;
     }
 
+    public int getQtdJogosConta(String chaveApi, String steamID) throws JsonMappingException, JsonProcessingException {
+        
+        return getJogos(chaveApi,steamID).size();
+    }
+
+    public int getQtdJogosDesejo(String steamID) throws JsonMappingException, JsonProcessingException {
+        
+        return getListaDesejo(steamID).size();
+    }
+
+    public List<JsonNode> jogosRecemJogados(String chaveApi, String steamID) throws JsonMappingException, JsonProcessingException {
+        JsonNode jsonJogos = getJogos(chaveApi,steamID);
+        List<JsonNode> jogosRecemJogados = new ArrayList<>();
+
+        for(JsonNode jogo: jsonJogos){
+            if (jogo.hasNonNull("playtime_2weeks")){
+                jogosRecemJogados.add(jogo);
+            }
+        }
+        return jogosRecemJogados;
+    }
 }
