@@ -28,15 +28,6 @@ public class GameController {
         return steamClient.getGameInfo(appId);
     }
 
-    @PostMapping("/test")
-    public Game testSave() {
 
-        Game game = new Game();
-
-        game.setAppId(730);
-        game.setName("Counter-Strike 2");
-
-        return gameCatalogService.saveGame(game);
-    }
 
 }

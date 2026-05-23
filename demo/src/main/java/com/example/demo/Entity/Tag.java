@@ -3,6 +3,9 @@ package com.example.demo.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "tags")
 @Getter
@@ -15,5 +18,9 @@ public class Tag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
     private String name;
+
+    @ManyToMany(mappedBy = "tags")
+    private Set<Game> games = new HashSet<>();
 }
