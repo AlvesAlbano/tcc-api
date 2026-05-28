@@ -20,7 +20,7 @@ public class ProfileController {
         this.profileService = profileService;
     }
 
-    @GetMapping("/{steamId}")
+    @GetMapping("/{username}")
     public UserProfileDTO getProfile(@PathVariable String steamId) throws JsonProcessingException {
         return profileService.buildProfile(steamId);
     }
