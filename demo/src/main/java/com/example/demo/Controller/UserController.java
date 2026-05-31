@@ -2,7 +2,8 @@ package com.example.demo.Controller;
 
 import com.example.demo.Client.SteamClient;
 import com.example.demo.Model.GameDTO;
-import com.example.demo.Service.ProfileService;
+import com.example.demo.Model.UserProfileHeaderDTO;
+import com.example.demo.Service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,34 +20,40 @@ import java.util.List;
 @Tag(name="Users")
 public class UserController {
 
-    private final SteamClient steamClient;
+    private final UserService userService;
 
-    public UserController(SteamClient steamClient) {
-        this.steamClient = steamClient;
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/profile/{username}")
+    @Operation(summary = "Pega resumo do perfil")
+    public UserProfileHeaderDTO getProfileHeader(@PathVariable String username) throws Exception {
+        return userService.getProfileHeader(username);
     }
 
     @GetMapping("/{username}")
     @Operation(summary = "Pega informações do usuário (Ex: motorfonte)")
-    public JsonNode getUserInfo(@PathVariable String steamId) throws JsonProcessingException {
-        return steamClient.getAccountInfo(steamId);
+    public JsonNode getUserInfo(@PathVariable String username) throws JsonProcessingException {
+        return userService.getUserInfo(username);
     }
 
     @GetMapping("/{username}/games")
     @Operation(summary = "Pega a lista de jogos do usuário (Ex: motorfonte)")
-    public List<GameDTO> getOwnedGames(@PathVariable String steamId) throws JsonProcessingException {
-        return steamClient.getGamesTyped(steamId);
+    public List<GameDTO> getOwnedGames(@PathVariable String username) throws JsonProcessingException {
+        return userService.getOwnedGames(username);
     }
 
     @GetMapping("/{username}/friends")
     @Operation(summary = "Pega os amigos do usuário (Ex: motorfonte)")
-    public JsonNode getFriendList(@PathVariable String steamId) throws JsonProcessingException {
-        return steamClient.getFriends(steamId);
+    public JsonNode getFriendList(@PathVariable String username) throws JsonProcessingException {
+        return userService.getFriends(username);
     }
 
     @GetMapping("/{username}/wishlist")
     @Operation(summary = "Pega os jogos na lista de desejo do usuário (Ex: motorfonte)")
-    public JsonNode getWishlist(@PathVariable String steamId) throws JsonProcessingException {
-        return steamClient.getWishlist(steamId);
+    public JsonNode getWishlist(@PathVariable String username) throws JsonProcessingException {
+        return userService.getWishlist(username);
     }
 
 }

@@ -19,12 +19,16 @@ public class ProfileService {
     private static final int MAX_GAMES = 100;
 
     private final SteamClient steamClient;
+    private final TagFilterService tagFilterService;
 
-    public ProfileService(SteamClient steamClient) {
+    public ProfileService(SteamClient steamClient, TagFilterService tagFilterService) {
         this.steamClient = steamClient;
+        this.tagFilterService = tagFilterService;
     }
 
     public UserProfileDTO buildProfile(String steamId) throws JsonProcessingException {
+        steamId = steamClient.resolveSteamId(steamId);
+
         List<GameDTO> games = steamClient.getGamesTyped(steamId);
 
         Set<Integer> ownedGames = games.stream()
@@ -40,22 +44,33 @@ public class ProfileService {
         Map<String, Double> tagWeights = new HashMap<>();
 
         for (GameDTO game : relevantGames) {
-            List<TagDTO> tags = steamClient.getGameTags(game.appId());
+            try {
 
-            if (tags == null || tags.isEmpty()) {
-                continue;
-            }
+                List<TagDTO> tags = steamClient.getGameTags(game.appId());
 
-            double gameWeight = calculateGameWeight(game.playtime());
-
-            for (TagDTO tag : tags) {
-                String tagName = normalizeTag(tag.name());
-
-                if (shouldIgnoreTag(tagName)) {
+                if (tags == null || tags.isEmpty()) {
                     continue;
                 }
 
-                tagWeights.merge(tagName, gameWeight, Double::sum);
+                double gameWeight = calculateGameWeight(game.playtime());
+
+                for (TagDTO tag : tags) {
+                    String tagName = normalizeTag(tag.name());
+
+                    if (tagFilterService.shouldIgnore(tagName)) {
+                        continue;
+                    }
+
+                    tagWeights.merge(tagName, gameWeight, Double::sum);
+                }
+
+            } catch (Exception e) {
+                System.out.println(
+                        "Erro ao buscar tags do jogo: "
+                                + game.appId()
+                );
+
+                e.printStackTrace();
             }
         }
 
@@ -71,19 +86,6 @@ public class ProfileService {
 
     private String normalizeTag(String tag) {
         return tag.trim().toLowerCase();
-    }
-
-    private boolean shouldIgnoreTag(String tag) {
-        Set<String> ignoredTags = Set.of(
-                "indie",
-                "casual",
-                "singleplayer",
-                "multiplayer",
-                "action",
-                "adventure"
-        );
-
-        return ignoredTags.contains(tag);
     }
 
     private void normalizeWeights(Map<String, Double> weights) {

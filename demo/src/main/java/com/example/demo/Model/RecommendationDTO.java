@@ -1,4 +1,10 @@
 package com.example.demo.Model;
 
-public class RecommendationDTO {
+public record RecommendationDTO(
+        Integer appId,
+        String name,
+        String shortDescription,
+        String imageUrl,
+        Double score
+) {
 }

@@ -21,7 +21,7 @@ public class ProfileController {
     }
 
     @GetMapping("/{username}")
-    public UserProfileDTO getProfile(@PathVariable String steamId) throws JsonProcessingException {
-        return profileService.buildProfile(steamId);
+    public UserProfileDTO getProfile(@PathVariable String username) throws JsonProcessingException {
+        return profileService.buildProfile(username);
     }
 }

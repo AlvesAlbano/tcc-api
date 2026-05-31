@@ -1,0 +1,67 @@
+action
+adventure
+indie
+casual
+simulation
+strategy
+sports
+racing
+
+singleplayer
+multiplayer
+online co-op
+local co-op
+co-op
+shared/split screen
+cross-platform multiplayer
+pvp
+mmo
+
+2d
+3d
+third-person
+first-person
+top-down
+side scroller
+isometric
+pixel graphics
+stylized
+anime
+cartoon
+realistic
+colorful
+
+controller
+controller support
+full controller support
+steam achievements
+steam cloud
+steam trading cards
+remote play together
+
+great soundtrack
+atmospheric
+cinematic
+story rich
+funny
+cute
+relaxing
+emotional
+dark
+violent
+gore
+sexual content
+nudity
+
+difficult
+easy
+short
+long
+fast-paced
+slow-paced
+
+open world
+sandbox
+
+free to play
+early access

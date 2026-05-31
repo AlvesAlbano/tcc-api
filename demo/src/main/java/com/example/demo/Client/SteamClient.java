@@ -20,7 +20,6 @@ public class SteamClient {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // private final WebClient webClient = WebClient.create();
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${steam.api.key}")
@@ -28,41 +27,72 @@ public class SteamClient {
 
     private final Map<Integer, List<TagDTO>> tagsCache = new HashMap<>();
 
+    private final Map<String, String> steamIdCache = new HashMap<>();
+
     public SteamClient() {
 
     }
 
-    public String getSteamID(String username) throws JsonMappingException, JsonProcessingException {
+    public String resolveSteamId(String steamIdentifier) throws JsonProcessingException {
+        // já é steamID64
+        if (steamIdentifier.matches("\\d{17}")) {
+            return steamIdentifier;
+        }
 
-        final String urlModel = String.format(
-                "http://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=%s&vanityurl=%s", apiKey,
-                username);
+        if (steamIdCache.containsKey(steamIdentifier)) {
+            return steamIdCache.get(steamIdentifier);
+        }
 
-        String json = restTemplate.getForObject(urlModel, String.class);
+        final String url = String.format(
+                "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=%s&vanityurl=%s",
+                apiKey,
+                steamIdentifier
+        );
+
+        String json = restTemplate.getForObject(url, String.class);
+
         JsonNode root = objectMapper.readTree(json);
 
-        JsonNode responseNode = root.path("response");
+        String steamId = root
+                .path("response")
+                .path("steamid")
+                .asText();
 
-        String steamID = responseNode.path("steamid").asText();
+        steamIdCache.put(steamIdentifier, steamId);
 
-        return steamID;
+        return steamId;
     }
 
-    public JsonNode getGames(String username) throws JsonMappingException, JsonProcessingException {
-        String steamId = getSteamID(username);
+    public JsonNode getAccountInfo(String steamId) throws JsonProcessingException {
+        final String url = String.format(
+                "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=%s&steamids=%s",
+                apiKey,
+                steamId
+        );
 
-        final String urlRequest = String.format("https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=%s&steamid=%s&include_appinfo=true",
-                apiKey, steamId);
+        String json = restTemplate.getForObject(url, String.class);
 
-        String json = restTemplate.getForObject(urlRequest, String.class);
+        JsonNode root = objectMapper.readTree(json);
+
+        return root.path("response").path("players");
+    }
+
+    public JsonNode getGames(String steamId) throws JsonProcessingException {
+        final String url = String.format(
+                "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=%s&steamid=%s&include_appinfo=true",
+                apiKey,
+                steamId
+        );
+
+        String json = restTemplate.getForObject(url, String.class);
 
         JsonNode root = objectMapper.readTree(json);
 
         return root.path("response").path("games");
     }
 
-    public List<GameDTO> getGamesTyped(String username) throws JsonProcessingException {
-        JsonNode gamesNode = getGames(username);
+    public List<GameDTO> getGamesTyped(String steamId) throws JsonProcessingException {
+        JsonNode gamesNode = getGames(steamId);
 
         List<GameDTO> games = new ArrayList<>();
 
@@ -77,17 +107,62 @@ public class SteamClient {
         return games;
     }
 
+    public JsonNode getFriends(String steamId) throws JsonMappingException, JsonProcessingException {
+        final String url = String.format(
+                "https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key=%s&steamid=%s&relationship=all",
+                apiKey,
+                steamId
+        );
+
+        String json = restTemplate.getForObject(url, String.class);
+
+        JsonNode root = objectMapper.readTree(json);
+
+        return root.path("friendslist").path("friends");
+    }
+
+    public JsonNode getWishlist(String steamId) throws JsonMappingException, JsonProcessingException {
+        final String url = String.format(
+                "https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=%s",
+                steamId
+        );
+
+        String json = restTemplate.getForObject(url, String.class);
+
+        JsonNode root = objectMapper.readTree(json);
+
+        return root.path("response").path("items");
+    }
+
+    public JsonNode getGameInfo(int appId) throws JsonMappingException, JsonProcessingException {
+        final String url = String.format(
+                "https://store.steampowered.com/api/appdetails?appids=%d",
+                appId
+        );
+
+        String json = restTemplate.getForObject(url, String.class);
+        JsonNode root = objectMapper.readTree(json);
+
+        return root
+                .path(String.valueOf(appId))
+                .path("data");
+    }
+
     public List<TagDTO> getGameTags(int appId) throws JsonProcessingException {
         if (tagsCache.containsKey(appId)) {
             return tagsCache.get(appId);
         }
 
-        final String urlRequest = String.format(
+        final String url = String.format(
                 "https://steamspy.com/api.php?request=appdetails&appid=%d",
                 appId
         );
 
-        String json = restTemplate.getForObject(urlRequest, String.class);
+        String json = restTemplate.getForObject(url, String.class);
+        if (json == null || !json.trim().startsWith("{")) {
+            return Collections.emptyList();
+        }
+
         JsonNode root = objectMapper.readTree(json);
 
         JsonNode tagsNode = root.path("tags");
@@ -108,63 +183,6 @@ public class SteamClient {
         tagsCache.put(appId, tags);
 
         return tags;
-    }
-
-    public JsonNode getGameInfo(int appId) throws JsonMappingException, JsonProcessingException {
-        final String urlRequest = String.format("https://store.steampowered.com/api/appdetails?appids=%d", appId);
-
-        String json = restTemplate.getForObject(urlRequest, String.class);
-        JsonNode root = objectMapper.readTree(json);
-
-        JsonNode appNode = root.path(String.valueOf(appId));
-        JsonNode dataNode = appNode.path("data");
-
-        return dataNode;
-    }
-
-    public JsonNode getFriends(String username) throws JsonMappingException, JsonProcessingException {
-        String steamId = getSteamID(username);
-
-        final String urlRequest = String.format("https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key=%s&steamid=%s&relationship=all", apiKey, steamId);
-
-        String json = restTemplate.getForObject(urlRequest, String.class);
-
-        JsonNode root = objectMapper.readTree(json);
-
-        JsonNode friendslistNode = root.path("friendslist");
-        JsonNode friendsNode = friendslistNode.path("friends");
-
-        return friendsNode;
-    }
-
-    public JsonNode getWishlist(String username) throws JsonMappingException, JsonProcessingException {
-        String steamId = getSteamID(username);
-
-        final String urlRequest = String.format("https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=%s", steamId);
-
-        String json = restTemplate.getForObject(urlRequest, String.class);
-
-        JsonNode root = objectMapper.readTree(json);
-
-        JsonNode response = root.path("response");
-        JsonNode wishlist = response.path("items");
-
-        return wishlist;
-    }
-
-    public JsonNode getAccountInfo(String username) throws JsonMappingException, JsonProcessingException {
-        String steamId = getSteamID(username);
-
-        final String urlRequest = String.format("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=%s&steamids=%s",
-                apiKey, steamId);
-
-        String json = restTemplate.getForObject(urlRequest, String.class);
-
-        JsonNode root = objectMapper.readTree(json);
-
-        JsonNode accountInfo = root.path("response").path("players");
-
-        return accountInfo;
     }
 
 }
