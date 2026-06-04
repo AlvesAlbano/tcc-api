@@ -42,18 +42,22 @@ public class UserService {
     }
 
     public JsonNode getUserInfo(String user) throws JsonProcessingException {
-        return steamClient.getAccountInfo(user);
+        String steamId = steamClient.resolveSteamId(user);
+        return steamClient.getAccountInfo(steamId);
     }
 
     public List<GameDTO> getOwnedGames(String user) throws JsonProcessingException {
-        return steamClient.getGamesTyped(user);
+        String steamId = steamClient.resolveSteamId(user);
+        return steamClient.getGamesTyped(steamId);
     }
 
     public JsonNode getFriends(String user) throws JsonProcessingException {
-        return steamClient.getFriends(user);
+        String steamId = steamClient.resolveSteamId(user);
+        return steamClient.getFriends(steamId);
     }
 
     public JsonNode getWishlist(String user) throws JsonProcessingException {
-        return steamClient.getWishlist(user);
+        String steamId = steamClient.resolveSteamId(user);
+        return steamClient.getWishlist(steamId);
     }
 }

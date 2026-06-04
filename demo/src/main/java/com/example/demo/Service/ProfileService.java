@@ -75,7 +75,18 @@ public class ProfileService {
         }
 
         normalizeWeights(tagWeights);
-        return new UserProfileDTO(ownedGames, tagWeights);
+
+        Map<String, Double> sortedTagWeights = tagWeights.entrySet()
+                .stream()
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
+
+        return new UserProfileDTO(ownedGames, sortedTagWeights);
     }
 
     private double calculateGameWeight(int playtime) {
