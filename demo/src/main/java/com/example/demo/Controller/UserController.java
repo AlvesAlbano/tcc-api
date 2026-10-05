@@ -1,6 +1,5 @@
 package com.example.demo.Controller;
 
-import com.example.demo.Client.SteamClient;
 import com.example.demo.Model.GameDTO;
 import com.example.demo.Model.UserProfileHeaderDTO;
 import com.example.demo.Service.UserService;

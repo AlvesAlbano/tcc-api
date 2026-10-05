@@ -68,8 +68,17 @@
             <optional>true</optional>
         </dependency>
 
-	</dependencies>
+		<!--		dependencias para comparação de hardware-->
+		<!-- Source: https://mvnrepository.com/artifact/org.jsoup/jsoup -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.23.2</version>
+			<scope>compile</scope>
+		</dependency>
+		<!--		dependencias para comparação de hardware-->
 
+	</dependencies>
 	<build>
 		<plugins>
 			<plugin>
