@@ -41,6 +41,25 @@ public class ScrapperCPU {
         );
     }
 
+    public List<ComponentJsonDTO> dynamicSearch(String cpuName) throws IOException, InterruptedException {
+        final String URL = String.format("https://nanoreview.net/api/search?q=%s&limit=10&type=cpu",cpuName);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(URL))
+                .header("Accept", "*/*")
+                .header("User-Agent", "Thunder Client (https://www.thunderclient.com)")
+                .method("GET", HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        final String jsonGpu = response.body();
+
+        return objectMapper.readValue(
+                jsonGpu,
+                objectMapper.getTypeFactory().constructCollectionType(List.class, ComponentJsonDTO.class)
+        );
+    }
+
     public static void main(String[] args) throws IOException, InterruptedException {
         ScrapperCPU scrapperCPU = new ScrapperCPU();
 

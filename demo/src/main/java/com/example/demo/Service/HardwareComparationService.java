@@ -52,6 +52,14 @@ public class HardwareComparationService {
         return scrapperGPU.gpusDisponiveis();
     }
 
+    public List<ComponentJsonDTO> dynamicSearchGpu(String gpuName) throws IOException, InterruptedException {
+        return scrapperGPU.dynamicSearch(gpuName);
+    }
+
+    public List<ComponentJsonDTO> dynamicSearchCpu(String cpuName) throws IOException, InterruptedException {
+        return scrapperCPU.dynamicSearch(cpuName);
+    }
+
     private String formatGpuString(String gpuName){
         System.out.printf("Antes da formatação: %s\n",gpuName);
 

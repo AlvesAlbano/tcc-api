@@ -51,21 +51,39 @@ public class HardwareComparationController {
 
     @GetMapping("/avaliable-cpus")
     @Operation(
-            summary = "Lista os processadores disponíveis",
+            summary = "Lista os 500 primeiros processadores disponíveis",
             description = "Retorna a lista de processadores disponíveis para comparação."
     )
-    public List<ComponentJsonDTO> getListCPU()
-            throws IOException, InterruptedException {
+    public List<ComponentJsonDTO> getListCPU() throws IOException, InterruptedException {
         return hardwareComparationService.getListCPU();
+    }
+
+    @GetMapping("/avaliable-cpus/{cpuName}")
+    @Operation(
+            summary = "Lista os 10 primeiros processadores disponíveis com base no nome",
+            description = "Retorna a lista de processadores disponíveis para comparação com base no nome."
+    )
+    public List<ComponentJsonDTO> dynamicSearchCpu(@RequestParam("cpuName") String cpuName) throws IOException, InterruptedException {
+        return hardwareComparationService.dynamicSearchCpu(cpuName);
     }
 
     @GetMapping("/avaliable-gpus")
     @Operation(
-            summary = "Lista as placas de vídeo disponíveis",
+            summary = "Lista as 500 primeiras placas de vídeo disponíveis",
             description = "Retorna a lista de placas de vídeo disponíveis para comparação."
     )
-    public List<ComponentJsonDTO> getListGPU()
-            throws IOException, InterruptedException {
+    public List<ComponentJsonDTO> getListGPU() throws IOException, InterruptedException {
         return hardwareComparationService.getListGPU();
     }
+
+    @GetMapping("/avaliable-gpus/{gpuName}")
+    @Operation(
+            summary = "Lista as 10 primeiras placas de vídeo disponíveis com base no nome",
+            description = "Retorna a lista de placas de vídeo disponíveis para comparação com base no nome."
+    )
+    public List<ComponentJsonDTO> dynamicSearchGpu(@RequestParam("gpuName") String gpuName) throws IOException, InterruptedException {
+        return hardwareComparationService.dynamicSearchGpu(gpuName);
+    }
+
+
 }
