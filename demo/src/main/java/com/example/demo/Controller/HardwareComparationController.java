@@ -5,10 +5,7 @@ import com.example.demo.Service.HardwareComparationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,7 +15,6 @@ import java.util.List;
 @Tag(name = "Hardware Comparation")
 public class HardwareComparationController {
 
-    @Autowired
     private final HardwareComparationService hardwareComparationService;
 
     public HardwareComparationController(HardwareComparationService hardwareComparationService) {
@@ -49,41 +45,33 @@ public class HardwareComparationController {
         return hardwareComparationService.compareGPU(gpuUser, gpuGame);
     }
 
-    @GetMapping("/avaliable-cpus")
+    @GetMapping("/available-cpus")
     @Operation(
-            summary = "Lista os 500 primeiros processadores disponíveis",
-            description = "Retorna a lista de processadores disponíveis para comparação."
+            summary = "Se utilizar parâmetro cpuName, vai buscar as CPUs através dele, caso contrário, vai listar as 500 CPUs."
     )
-    public List<ComponentJsonDTO> getListCPU() throws IOException, InterruptedException {
+    public List<ComponentJsonDTO> getCPUs(
+            @RequestParam(value = "cpuName", required = false)
+            String cpuName
+    ) throws IOException, InterruptedException {
+        if (cpuName != null && !cpuName.isBlank()) {
+            return hardwareComparationService.dynamicSearchCpu(cpuName);
+        }
+
         return hardwareComparationService.getListCPU();
     }
 
-    @GetMapping("/avaliable-cpus/{cpuName}")
+    @GetMapping("/available-gpus")
     @Operation(
-            summary = "Lista os 10 primeiros processadores disponíveis com base no nome",
-            description = "Retorna a lista de processadores disponíveis para comparação com base no nome."
+            summary = "Se utilizar parâmetro gpuName, vai buscar as GPUs através dele, caso contrário, vai listar as 500 GPUs."
     )
-    public List<ComponentJsonDTO> dynamicSearchCpu(@RequestParam("cpuName") String cpuName) throws IOException, InterruptedException {
-        return hardwareComparationService.dynamicSearchCpu(cpuName);
-    }
+    public List<ComponentJsonDTO> getGPUs(
+            @RequestParam(value = "gpuName", required = false)
+            String gpuName
+    ) throws IOException, InterruptedException {
+        if (gpuName != null && !gpuName.isBlank()) {
+            return hardwareComparationService.dynamicSearchGpu(gpuName);
+        }
 
-    @GetMapping("/avaliable-gpus")
-    @Operation(
-            summary = "Lista as 500 primeiras placas de vídeo disponíveis",
-            description = "Retorna a lista de placas de vídeo disponíveis para comparação."
-    )
-    public List<ComponentJsonDTO> getListGPU() throws IOException, InterruptedException {
         return hardwareComparationService.getListGPU();
     }
-
-    @GetMapping("/avaliable-gpus/{gpuName}")
-    @Operation(
-            summary = "Lista as 10 primeiras placas de vídeo disponíveis com base no nome",
-            description = "Retorna a lista de placas de vídeo disponíveis para comparação com base no nome."
-    )
-    public List<ComponentJsonDTO> dynamicSearchGpu(@RequestParam("gpuName") String gpuName) throws IOException, InterruptedException {
-        return hardwareComparationService.dynamicSearchGpu(gpuName);
-    }
-
-
 }
