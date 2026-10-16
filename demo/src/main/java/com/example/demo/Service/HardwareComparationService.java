@@ -6,6 +6,7 @@ import com.example.demo.CompareGPU;
 import com.example.demo.Model.ComponentJsonDTO;
 import com.example.demo.ScrapperCPU;
 import com.example.demo.ScrapperGPU;
+import com.example.demo.Util.FormatationComponentUtil;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,16 +31,15 @@ public class HardwareComparationService {
     }
 
     public boolean compareCPU(String cpuUser,String cpuGame) throws IOException, InterruptedException {
-
-        cpuUser = formatCpuString(cpuUser);
-        cpuGame = formatCpuString(cpuGame);
+        cpuUser = FormatationComponentUtil.formatCpuName(cpuUser);
+        cpuGame = FormatationComponentUtil.formatCpuName(cpuGame);
 
         return compareCPU.comparar(cpuUser, cpuGame);
     }
 
     public boolean compareGPU(String gpuUser,String gpuGame) throws IOException, InterruptedException {
-        gpuUser = formatGpuString(gpuUser);
-        gpuGame = formatGpuString(gpuGame);
+        gpuUser = FormatationComponentUtil.formatGpuName(gpuUser);
+        gpuGame= FormatationComponentUtil.formatGpuName(gpuGame);
 
         return compareGPU.comparar(gpuUser, gpuGame);
     }
@@ -60,37 +60,4 @@ public class HardwareComparationService {
         return scrapperCPU.dynamicSearch(cpuName);
     }
 
-    private String formatGpuString(String gpuName){
-        System.out.printf("Antes da formatação: %s\n",gpuName);
-
-        final String[] keyWords = {
-                "Nvidia",
-                "AMD"
-        };
-
-        for(String keyWord: keyWords){
-            if(gpuName.contains(keyWord)){
-                gpuName = gpuName
-                        .replace(keyWord,"")
-                        .toLowerCase()
-                        .trim()
-                        .replace(" ","-");
-            }
-        }
-
-        System.out.printf("Depois da formatação: %s\n",gpuName);
-        return gpuName;
-    }
-
-    private String formatCpuString(String CpuName){
-        System.out.printf("Antes da formatação: %s\n",CpuName);
-
-        CpuName = CpuName
-                .replace(" ","-")
-                .toLowerCase()
-                .trim();
-
-        System.out.printf("Depois da formatação: %s\n",CpuName);
-        return CpuName;
-    }
 }

@@ -2,6 +2,7 @@ package com.example.demo.Service;
 
 import com.example.demo.Model.GameRequirementsDTO;
 import com.example.demo.Model.RequirementsSetDTO;
+import com.example.demo.Util.FormatationComponentUtil;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -88,10 +89,20 @@ public class SteamRequirementsParser {
                 .trim();
 
         return Arrays.stream(
-                        cleanValue.split("(?i)\\s+or\\s+")
+                        cleanValue.split("(?i)\\s*,\\s*|\\s+or\\s+")
                 )
                 .map(String::trim)
                 .filter(option -> !option.isBlank())
+                .map(option -> {
+                            if (label.equalsIgnoreCase("Processor")) {
+                                return FormatationComponentUtil.formatCpuName(option);
+                            } else if (label.equalsIgnoreCase("Graphics")) {
+                                return FormatationComponentUtil.formatGpuName(option);
+                            }
+
+                            return option;
+                        }
+                )
                 .toList();
     }
 
@@ -124,5 +135,4 @@ public class SteamRequirementsParser {
 
         return null;
     }
-
 }
