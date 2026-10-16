@@ -65,7 +65,11 @@ public class HardwareComparationService {
 
         final String[] keyWords = {
                 "Nvidia",
-                "AMD"
+                "AMD",
+                "™",
+                "℠",
+                "®",
+                "©"
         };
 
         for(String keyWord: keyWords){
