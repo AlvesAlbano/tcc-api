@@ -27,6 +27,12 @@ public class Game {
     @Column(columnDefinition = "TEXT")
     private String shortDescription;
 
+    @Column(name = "release_year")
+    private Integer releaseYear;
+
+    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<GameRequirement> requirements = new HashSet<>();
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "game_tags",

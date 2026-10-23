@@ -2,6 +2,7 @@ package com.example.demo.Service;
 
 import com.example.demo.Client.SteamClient;
 import com.example.demo.Model.GameDTO;
+import com.example.demo.Model.UserProfileDTO;
 import com.example.demo.Model.UserProfileHeaderDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,9 +14,11 @@ import java.util.List;
 public class UserService {
 
     private final SteamClient steamClient;
+    private final ProfileService profileService;
 
-    public UserService(SteamClient steamClient) {
+    public UserService(SteamClient steamClient, ProfileService profileService) {
         this.steamClient = steamClient;
+        this.profileService = profileService;
     }
 
     public UserProfileHeaderDTO getProfileHeader(String user) throws Exception {
@@ -32,12 +35,23 @@ public class UserService {
         JsonNode friends = steamClient.getFriends(steamId);
         JsonNode wishlist = steamClient.getWishlist(steamId);
 
+        UserProfileDTO profile = profileService.buildProfile(steamId);
+
+        List<String> favoriteGenres = profile.tagWeights() != null
+                ? profile.tagWeights()
+                .keySet()
+                .stream()
+                .limit(3)
+                .toList()
+                : List.of();
+
         return new UserProfileHeaderDTO(
                 player.path("personaname").asText(),
                 player.path("avatarfull").asText(),
                 games != null ? games.size() : 0,
                 friends != null ? friends.size() : 0,
-                wishlist != null ? wishlist.size() : 0
+                wishlist != null ? wishlist.size() : 0,
+                favoriteGenres
         );
     }
 

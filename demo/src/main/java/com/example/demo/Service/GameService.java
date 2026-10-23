@@ -24,14 +24,18 @@ public class GameService {
 
     private JsonNode getGameRequirementsJson(int appId) throws JsonProcessingException {
         JsonNode jsonGameInfo = getGameInfoJson(appId);
-        return jsonGameInfo.get("pc_requirements");
+        return jsonGameInfo == null ? null : jsonGameInfo.path("pc_requirements");
     }
 
     public GameRequirementsDTO getGameRequirements(int appId) throws JsonProcessingException {
         JsonNode jsonRequirements = getGameRequirementsJson(appId);
 
-        String minimumHtml = jsonRequirements.get("minimum").toString();
-        String recommendedHtml = jsonRequirements.get("recommended").toString();
+        if (jsonRequirements == null || jsonRequirements.isMissingNode() || jsonRequirements.isNull()) {
+            return steamRequirementsParser.parse(null, null);
+        }
+
+        String minimumHtml = jsonRequirements.get("minimum").asText("");
+        String recommendedHtml = jsonRequirements.get("recommended").asText("");
 
         return steamRequirementsParser.parse(minimumHtml, recommendedHtml);
     }
