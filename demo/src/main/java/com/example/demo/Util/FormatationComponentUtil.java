@@ -8,9 +8,9 @@ public final class FormatationComponentUtil {
         System.out.printf("Antes da formatação (CPU): %s\n",cpuName);
 
         cpuName = cpuName
+                .trim()
                 .replace(" ","-")
-                .toLowerCase()
-                .trim();
+                .toLowerCase();
 
         System.out.printf("Depois da formatação (CPU): %s\n",cpuName);
         return cpuName;
