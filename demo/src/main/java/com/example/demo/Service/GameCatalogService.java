@@ -115,7 +115,9 @@ public class GameCatalogService {
                 String normalized = raw.replaceAll("\\s+", " ");
 
                 Tag tag = tagRepository.findByName(normalized).orElseGet(() -> {
-                    Tag newTag = new Tag(); newTag.setName(normalized); return tagRepository.save(newTag);
+                    Tag newTag = new Tag();
+                    newTag.setName(normalized);
+                    return tagRepository.save(newTag);
                 });
 
                 gameTags.add(tag);

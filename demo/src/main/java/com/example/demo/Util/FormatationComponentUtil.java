@@ -1,34 +1,52 @@
 package com.example.demo.Util;
 
 public final class FormatationComponentUtil {
+
+    private static final String[] gpuKeyWords = {
+            "Nvidia",
+            "AMD",
+            "™",
+            "℠",
+            "®",
+            "©",
+            "@",
+            "VRAM",
+    };
+
+    private static final String[] cpuKeyWords = {
+            "™",
+            "℠",
+            "®",
+            "©",
+            "@",
+    };
+
     public FormatationComponentUtil() {
     }
 
-    public static String formatCpuName(String cpuName){
-        System.out.printf("Antes da formatação (CPU): %s\n",cpuName);
+    public static String formatCpuName(String cpuName) {
+        System.out.printf("Antes da formatação (CPU): %s\n", cpuName);
+
+        for (String keyWord : cpuKeyWords) {
+            cpuName = cpuName.replaceAll(
+                    "(?i)" + java.util.regex.Pattern.quote(keyWord),
+                    ""
+            );
+        }
 
         cpuName = cpuName
                 .trim()
-                .replace(" ","-")
+                .replace(" ", "-")
                 .toLowerCase();
 
-        System.out.printf("Depois da formatação (CPU): %s\n",cpuName);
+        System.out.printf("Depois da formatação (CPU): %s\n", cpuName);
         return cpuName;
     }
 
-    public static String formatGpuName(String gpuName){
-        System.out.printf("Antes da formatação (GPU): %s\n",gpuName);
+    public static String formatGpuName(String gpuName) {
+        System.out.printf("Antes da formatação (GPU): %s\n", gpuName);
 
-        final String[] keyWords = {
-                "Nvidia",
-                "AMD",
-                "™",
-                "℠",
-                "®",
-                "©"
-        };
-
-        for (String keyWord : keyWords) {
+        for (String keyWord : gpuKeyWords) {
             gpuName = gpuName.replaceAll(
                     "(?i)" + java.util.regex.Pattern.quote(keyWord),
                     ""
@@ -39,7 +57,7 @@ public final class FormatationComponentUtil {
                 .toLowerCase()
                 .trim()
                 .replaceAll("\\s+", "-");
-        System.out.printf("Depois da formatação (GPU): %s\n",gpuName);
+        System.out.printf("Depois da formatação (GPU): %s\n", gpuName);
 
         return gpuName;
     }

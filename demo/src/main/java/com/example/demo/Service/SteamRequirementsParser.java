@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Component
 public class SteamRequirementsParser {
@@ -81,6 +82,13 @@ public class SteamRequirementsParser {
     }
 
     private List<String> parseAlternatives(String value, String label) {
+
+        final String[] separationSymbols = {
+                ",",
+                "or",
+                "/",
+        };
+
         String cleanValue = value
                 .replaceFirst(
                         "(?i)" + Pattern.quote(label) + "\\s*:",
@@ -88,11 +96,25 @@ public class SteamRequirementsParser {
                 )
                 .trim();
 
+        String regex = Arrays.stream(separationSymbols)
+                .map(symbol -> {
+                    // Se for uma palavra (ex: "or"), garantimos que ela seja cercada por espaços ou limites
+                    if (symbol.matches("[a-zA-Z]+")) {
+                        return "\\s+" + Pattern.quote(symbol) + "\\s+";
+                    } else {
+                        // Se for pontuação/símbolo (ex: ",", "/"), permitimos espaços opcionais ao redor
+                        return "\\s*" + Pattern.quote(symbol) + "\\s*";
+                    }
+                })
+                .collect(Collectors.joining("|"));
+
         return Arrays.stream(
-                        cleanValue.split("(?i)\\s*,\\s*|\\s+or\\s+")
+                        cleanValue.split("(?i)" + regex)
                 )
                 .map(String::trim)
                 .filter(option -> !option.isBlank())
+//                .map(this::cleanHardwareString)
+//                .filter(option -> !option.isBlank())
                 .map(option -> {
                             if (label.equalsIgnoreCase("Processor")) {
                                 return FormatationComponentUtil.formatCpuName(option);
@@ -135,4 +157,6 @@ public class SteamRequirementsParser {
 
         return null;
     }
+
+
 }

@@ -1,13 +1,11 @@
 package com.example.demo.Controller;
 
+import com.example.demo.Model.ComponentDTO;
 import com.example.demo.Model.ComponentJsonDTO;
 import com.example.demo.Service.HardwareComparationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,9 +26,9 @@ public class HardwareComparationController {
             summary = "Compara dois processadores",
             description = "Compara dois modelos de CPU e retorna qual deles possui melhor desempenho.  (Ex. cpu1 = AMD Ryzen 3 210, cpu2 = AMD Ryzen 3 3100)"
     )
-    public boolean compareCPU(
-            @RequestParam("cpuUser") String cpuUser,
-            @RequestParam("cpuGame") String cpuGame
+    public String compareCPU(
+            @RequestBody ComponentDTO cpuUser,
+            @RequestBody ComponentDTO cpuGame
     ) throws IOException, InterruptedException {
         return hardwareComparationService.compareCPU(cpuUser, cpuGame);
     }
@@ -40,16 +38,16 @@ public class HardwareComparationController {
             summary = "Compara duas placas de vídeo",
             description = "Compara dois modelos de GPU e retorna qual deles possui melhor desempenho. (Ex. gpu1 = AMD Radeon 820M, gpu2 = Nvidia GeForce MX230)"
     )
-    public boolean compareGPU(
-            @RequestParam("gpuUser") String gpuUser,
-            @RequestParam("gpuGame") String gpuGame
+    public String compareGPU(
+            @RequestBody ComponentDTO gpuUser,
+            @RequestBody ComponentDTO gpuGame
     ) throws IOException, InterruptedException {
         return hardwareComparationService.compareGPU(gpuUser, gpuGame);
     }
 
     @GetMapping("/available-cpus")
     @Operation(
-            summary = "Se utilizar parâmetro cpuName, vai buscar as CPUs através dele, caso contrário, vai listar as 500 CPUs."
+            summary = "Se utilizar parâmetro cpuName, vai buscar as CPUs através dele, caso contrário, vai listar as 9999 CPUs."
     )
     public List<ComponentJsonDTO> getCPUs(
             @RequestParam(value = "cpuName", required = false)
@@ -64,7 +62,7 @@ public class HardwareComparationController {
 
     @GetMapping("/available-gpus")
     @Operation(
-            summary = "Se utilizar parâmetro gpuName, vai buscar as GPUs através dele, caso contrário, vai listar as 500 GPUs."
+            summary = "Se utilizar parâmetro gpuName, vai buscar as GPUs através dele, caso contrário, vai listar as 9999 GPUs."
     )
     public List<ComponentJsonDTO> getGPUs(
             @RequestParam(value = "gpuName", required = false)

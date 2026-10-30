@@ -9,5 +9,6 @@ import java.util.Optional;
 
 public interface GameRequirementRepository extends JpaRepository<GameRequirement, Long> {
     List<GameRequirement> findAllByGameAppId(Integer appId);
+
     Optional<GameRequirement> findByGameAppIdAndType(Integer appId, RequirementType type);
 }

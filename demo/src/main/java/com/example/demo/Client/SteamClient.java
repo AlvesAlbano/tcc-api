@@ -3,7 +3,6 @@ package com.example.demo.Client;
 import com.example.demo.Model.GameDTO;
 import com.example.demo.Model.TagDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,17 +15,15 @@ import java.util.*;
 @Component
 public class SteamClient {
 
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final Map<Integer, List<TagDTO>> tagsCache = new HashMap<>();
+    private final Map<String, String> steamIdCache = new HashMap<>();
+
     @Autowired
     private ObjectMapper objectMapper;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-
     @Value("${steam.api.key}")
     private String apiKey;
-
-    private final Map<Integer, List<TagDTO>> tagsCache = new HashMap<>();
-
-    private final Map<String, String> steamIdCache = new HashMap<>();
 
     public SteamClient() {
 
@@ -106,7 +103,7 @@ public class SteamClient {
         return games;
     }
 
-    public JsonNode getFriends(String steamId) throws JsonMappingException, JsonProcessingException {
+    public JsonNode getFriends(String steamId) throws JsonProcessingException {
         final String url = String.format(
                 "https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key=%s&steamid=%s&relationship=all",
                 apiKey,
@@ -120,7 +117,7 @@ public class SteamClient {
         return root.path("friendslist").path("friends");
     }
 
-    public JsonNode getWishlist(String steamId) throws JsonMappingException, JsonProcessingException {
+    public JsonNode getWishlist(String steamId) throws JsonProcessingException {
         final String url = String.format(
                 "https://api.steampowered.com/IWishlistService/GetWishlist/v1/?steamid=%s",
                 steamId
@@ -133,7 +130,7 @@ public class SteamClient {
         return root.path("response").path("items");
     }
 
-    public JsonNode getGameInfo(int appId) throws JsonMappingException, JsonProcessingException {
+    public JsonNode getGameInfo(int appId) throws JsonProcessingException {
         final String url = String.format(
                 "https://store.steampowered.com/api/appdetails?appids=%d",
                 appId

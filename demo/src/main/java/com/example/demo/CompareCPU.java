@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import com.example.demo.Model.ComponentDTO;
+import com.example.demo.Model.ComponentScrapperDTO;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,8 +19,8 @@ import java.util.List;
 @Component
 public class CompareCPU {
 
-    private List<ComponentDTO> raspagemWeb(String url) throws IOException, InterruptedException {
-        List<ComponentDTO> componenteList = new ArrayList<>();
+    private List<ComponentScrapperDTO> raspagemWeb(String url) throws IOException, InterruptedException {
+        List<ComponentScrapperDTO> componenteList = new ArrayList<>();
 
         HttpClient client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -47,46 +48,58 @@ public class CompareCPU {
         Element divGaming = soup.selectFirst("div.compare-tags-bars-highlight");
         Elements scoreBars = divGaming.select(".score-bar");
 
-        for(Element scoreBar: scoreBars){
+        for (Element scoreBar : scoreBars) {
             Element nomeElement = scoreBar.selectFirst(".score-bar-name");
             Element pontuacaoElement = scoreBar.selectFirst(".score-bar-result");
 
             String nome = nomeElement.text().trim();
             int pontuacao = Integer.parseInt(
-                pontuacaoElement.text().trim()
+                    pontuacaoElement.text().trim()
             );
 
-            ComponentDTO componente = new ComponentDTO(nome,null,"CPU",pontuacao);
-            componenteList.add(componente);
+            ComponentScrapperDTO component = new ComponentScrapperDTO(nome, pontuacao);
+            componenteList.add(component);
         }
 
         return componenteList;
     }
 
-    public boolean comparar(String cpu1,String cpu2) throws IOException, InterruptedException {
-        final String URL = String.format("https://nanoreview.net/en/cpu-compare/%s-vs-%s?uc=gaming",cpu1,cpu2);
+    public boolean comparar(ComponentDTO cpuUser, ComponentDTO cpuGame) throws IOException, InterruptedException {
+        final String URL = String.format("https://nanoreview.net/en/cpu-compare/%s-vs-%s?uc=gaming", cpuUser.name(), cpuGame.name());
 
-        System.out.printf("Url da comparação: %s\n",URL);
+        int cpuUserScore;
+        int cpuGameScore;
 
-        final List<ComponentDTO> ComponentDTOList = raspagemWeb(URL);
+        System.out.printf("Url da comparação: %s\n", URL);
+        final List<ComponentScrapperDTO> ComponentScrapperDTOList = raspagemWeb(URL);
 
-//        System.out.println(ComponentDTOList);
+        if (isUserCpu(cpuUser, ComponentScrapperDTOList.getFirst())) {
+            cpuUserScore = ComponentScrapperDTOList.getFirst().score();
+            cpuGameScore = ComponentScrapperDTOList.getLast().score();
+        } else {
+            cpuUserScore = ComponentScrapperDTOList.getLast().score();
+            cpuGameScore = ComponentScrapperDTOList.getFirst().score();
+        }
 
-        ComponentDTO componente_1 = ComponentDTOList.get(0);
-        ComponentDTO componente_2 = ComponentDTOList.get(1);
-
-        if (componente_1.score() > componente_2.score()){
-            System.out.printf("%s é melhor que %s\n",componente_1.name(),componente_2.name());
+        if (cpuUserScore > cpuGameScore) {
+            System.out.printf("%s é melhor que %s\n", cpuUser.name(), cpuGame.name());
+            System.out.println("Cpu do usuario melhor que a do jogo");
             System.out.println("Emoji de certo");
         } else {
-            System.out.printf("%s é melhor que %s\n",componente_2.name(),componente_1.name());
+            System.out.printf("%s é melhor que %s\n", cpuGame.name(), cpuUser.name());
+            System.out.println("cpu do usuario não é melhor que a do jogo");
             System.out.println("Emoji de X");
         }
-        return componente_1.score() > componente_2.score();
+
+        return cpuUserScore > cpuGameScore;
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        CompareCPU compareCPU = new CompareCPU();
-        System.out.println(compareCPU.comparar("amd-ryzen-5-2400g","amd-ryzen-5-3600x"));
+    private boolean isUserCpu(ComponentDTO componentDTO, ComponentScrapperDTO componentScrapperDTO) throws IOException, InterruptedException {
+
+        String gpuScapperName = componentScrapperDTO.name();
+
+        gpuScapperName = gpuScapperName.replace(" ", "-").toLowerCase();
+
+        return componentDTO.name().equals(gpuScapperName) && componentDTO.owner().equals("user");
     }
 }

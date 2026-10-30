@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users")
-@Tag(name="Users")
+@Tag(name = "Users")
 public class UserController {
 
     private final UserService userService;

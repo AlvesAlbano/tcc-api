@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/recommendations")
-@Tag(name="Recommendations")
+@Tag(name = "Recommendations")
 public class RecommendationController {
 
     private final RecommendationService recommendationService;

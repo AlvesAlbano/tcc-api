@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/games")
-@Tag(name="Games")
+@Tag(name = "Games")
 public class GameController {
 
 //    private final SteamClient steamClient;
@@ -31,14 +31,14 @@ public class GameController {
     }
 
     @GetMapping("/{appId}")
-    @Operation(summary = "Retorna informações detalhadas de um jogo",description = "(Ex: 3050900)")
+    @Operation(summary = "Retorna informações detalhadas de um jogo", description = "(Ex: 3050900)")
     public JsonNode getGameInfo(@PathVariable int appId) throws JsonProcessingException {
 //        return steamClient.getGameInfo(appId);
         return gameService.getGameInfoJson(appId);
     }
 
     @GetMapping("requirements/{appId}")
-    @Operation(summary = "Retorna os requisitos minimos e recomendados de um jogo",description = "(Ex: 3050900)")
+    @Operation(summary = "Retorna os requisitos minimos e recomendados de um jogo", description = "(Ex: 3050900)")
     public GameRequirementsDTO getGameRequirementsInfo(@PathVariable int appId) throws JsonProcessingException {
 
         return gameService.getGameRequirements(appId);

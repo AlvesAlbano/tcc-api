@@ -23,7 +23,7 @@ public class ScrapperGPU {
     }
 
     public List<ComponentJsonDTO> gpusDisponiveis() throws IOException, InterruptedException {
-        final String URL = "https://nanoreview.net/api/search?q=*&limit=500&type=gpu";
+        final String URL = "https://nanoreview.net/api/search?q=*&limit=9999&type=gpu";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(URL))
@@ -42,7 +42,7 @@ public class ScrapperGPU {
     }
 
     public List<ComponentJsonDTO> dynamicSearch(String gpuName) throws IOException, InterruptedException {
-        final String URL = String.format("https://nanoreview.net/api/search?q=%s&limit=10&type=gpu",gpuName);
+        final String URL = String.format("https://nanoreview.net/api/search?q=%s&limit=9999&type=gpu", gpuName);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(URL))
@@ -58,11 +58,5 @@ public class ScrapperGPU {
                 jsonGpu,
                 objectMapper.getTypeFactory().constructCollectionType(List.class, ComponentJsonDTO.class)
         );
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        ScrapperGPU scrapperGPU = new ScrapperGPU();
-
-        System.out.println(scrapperGPU.gpusDisponiveis());
     }
 }

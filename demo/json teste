@@ -1,0 +1,11 @@
+{
+    "cpu": "AMD Ryzen 3 210",
+    "gpu": "Nvidia GeForce MX230",
+    "ram": 16
+}
+
+{
+    "cpu": "amd-ryzen-3-3100",
+    "gpu": "geforce-mx230",
+    "ram": 16
+}

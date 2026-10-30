@@ -14,8 +14,6 @@ import java.util.List;
 @Component
 public class ScrapperCPU {
 
-    private final String URL = "https://nanoreview.net/api/search?q=*&limit=500&type=cpu";
-
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
@@ -25,6 +23,8 @@ public class ScrapperCPU {
     }
 
     public List<ComponentJsonDTO> cpusDisponiveis() throws IOException, InterruptedException {
+        final String URL = "https://nanoreview.net/api/search?q=*&limit=9999&type=cpu";
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(URL))
                 .header("Accept", "*/*")
@@ -42,7 +42,7 @@ public class ScrapperCPU {
     }
 
     public List<ComponentJsonDTO> dynamicSearch(String cpuName) throws IOException, InterruptedException {
-        final String URL = String.format("https://nanoreview.net/api/search?q=%s&limit=10&type=cpu",cpuName);
+        final String URL = String.format("https://nanoreview.net/api/search?q=%s&limit=99999&type=cpu", cpuName);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(URL))
@@ -58,11 +58,5 @@ public class ScrapperCPU {
                 jsonGpu,
                 objectMapper.getTypeFactory().constructCollectionType(List.class, ComponentJsonDTO.class)
         );
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        ScrapperCPU scrapperCPU = new ScrapperCPU();
-
-        System.out.println(scrapperCPU.cpusDisponiveis());
     }
 }

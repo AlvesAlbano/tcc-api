@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/profiles")
-@Tag(name="Profiles")
+@Tag(name = "Profiles")
 public class ProfileController {
 
     private final ProfileService profileService;
