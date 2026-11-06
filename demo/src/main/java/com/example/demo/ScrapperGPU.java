@@ -6,9 +6,11 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Component
@@ -42,7 +44,15 @@ public class ScrapperGPU {
     }
 
     public List<ComponentJsonDTO> dynamicSearch(String gpuName) throws IOException, InterruptedException {
-        final String URL = String.format("https://nanoreview.net/api/search?q=%s&limit=9999&type=gpu", gpuName);
+        String encodedGpuName = URLEncoder.encode(
+                gpuName,
+                StandardCharsets.UTF_8
+        );
+
+        final String URL = String.format(
+                "https://nanoreview.net/api/search?q=%s&limit=9999&type=gpu",
+                encodedGpuName
+        );
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(URL))

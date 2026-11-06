@@ -1,3 +1,4 @@
+
 package com.example.demo.Service;
 
 import com.example.demo.Model.*;
@@ -5,96 +6,209 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class SystemRequirementsCheckerService {
 
-    private final GameService gameService;
+    private final GameRequirementsService gameRequirementsService;
     private final HardwareComparationService hardwareComparationService;
 
-    public SystemRequirementsCheckerService(GameService gameService, HardwareComparationService hardwareComparationService) {
-        this.gameService = gameService;
+    public SystemRequirementsCheckerService(
+            GameRequirementsService gameRequirementsService,
+            HardwareComparationService hardwareComparationService
+    ) {
+        this.gameRequirementsService = gameRequirementsService;
         this.hardwareComparationService = hardwareComparationService;
     }
 
-    public RequirementsResultsDTO requirementsComparation(int appId, UserPcInfoDTO userPcInfoDTO) throws IOException, InterruptedException {
-        GameRequirementsDTO gameRequirementsDTO = gameService.getGameRequirements(appId);
+    public RequirementsResultsDTO requirementsComparation(
+            int appId,
+            UserPcInfoDTO userPcInfoDTO
+    ) throws IOException, InterruptedException {
 
-        return compareRequirements(gameRequirementsDTO, userPcInfoDTO);
+        GameRequirementsDTO requirements = gameRequirementsService.getRequirements(appId);
+        return compareRequirements(requirements, userPcInfoDTO);
     }
 
-    private RequirementsResultsDTO compareRequirements(GameRequirementsDTO gameRequirementsDTO, UserPcInfoDTO userPcInfoDTO) throws IOException, InterruptedException {
+    // Compara os requisitos já carregados do banco.
+    public RequirementsResultsDTO compareRequirements(
+            GameRequirementsDTO requirements,
+            UserPcInfoDTO userPcInfoDTO
+    ) throws IOException, InterruptedException {
 
-        RequirementsSetDTO minimumRequirements = gameRequirementsDTO.minimum();
-        RequirementsSetDTO recommendedRequirements = gameRequirementsDTO.recommended();
+        RequirementsSetDTO minimum = requirements != null
+                ? requirements.minimum() : null;
 
-        System.out.println(recommendedRequirements);
+        RequirementsSetDTO recommended = requirements != null
+                ? requirements.recommended() : null;
 
-        // Inicializando os HashMaps
-        HashMap<String, String> cpuMinimumRequirements = new HashMap<>();
-        HashMap<String, String> cpuRecommendedRequirements = new HashMap<>();
-        HashMap<String, String> gpuMinimumRequirements = new HashMap<>();
-        HashMap<String, String> gpuRecommendedRequirements = new HashMap<>();
-        final boolean ramRecommended = (userPcInfoDTO.ram() >= minimumRequirements.ramGb());
-        final boolean ramMinimum = (userPcInfoDTO.ram() >= recommendedRequirements.ramGb());
+        Map<String, ComponentRequirementResultDTO> cpuMinimum =
+                compareCPUOptions(minimum, userPcInfoDTO);
 
-        // Criação dos componentes do usuário (já com os dados do DTO)
-        ComponentDTO gpuUser = new ComponentDTO(userPcInfoDTO.gpu(), "user");
-        ComponentDTO cpuUser = new ComponentDTO(userPcInfoDTO.cpu(), "user");
+        Map<String, ComponentRequirementResultDTO> cpuRecommended =
+                compareCPUOptions(recommended, userPcInfoDTO);
 
-        // ==========================================
-        // 1. COMPARAÇÃO DE GPU (Mínimo e Recomendado)
-        // ==========================================
+        Map<String, ComponentRequirementResultDTO> gpuMinimum =
+                compareGPUOptions(minimum, userPcInfoDTO);
 
-        // Mínimo
-        if (minimumRequirements != null && minimumRequirements.gpuOptions() != null) {
-            for (String gpuOption : minimumRequirements.gpuOptions()) {
-                ComponentDTO gpuGame = new ComponentDTO(gpuOption, "game");
-                String result = hardwareComparationService.compareGPU(gpuUser, gpuGame);
-                gpuMinimumRequirements.put(gpuOption, result);
-            }
-        }
+        Map<String, ComponentRequirementResultDTO> gpuRecommended =
+                compareGPUOptions(recommended, userPcInfoDTO);
 
-        // Recomendado
-        if (recommendedRequirements != null && recommendedRequirements.gpuOptions() != null) {
-            for (String gpuOption : recommendedRequirements.gpuOptions()) {
-                ComponentDTO gpuGame = new ComponentDTO(gpuOption, "game");
-                String result = hardwareComparationService.compareGPU(gpuUser, gpuGame);
-                gpuRecommendedRequirements.put(gpuOption, result);
-            }
-        }
+        Boolean ramMinimum = minimum != null && minimum.ramGb() != null
+                ? userPcInfoDTO.ram() >= minimum.ramGb()
+                : null;
 
-        // ==========================================
-        // 2. COMPARAÇÃO DE CPU (Mínimo e Recomendado)
-        // ==========================================
-
-        // Mínimo
-        if (minimumRequirements != null && minimumRequirements.cpuOptions() != null) {
-            for (String cpuOption : minimumRequirements.cpuOptions()) {
-                ComponentDTO cpuGame = new ComponentDTO(cpuOption, "game");
-                // Supondo que você tenha um método parecesido para CPU:
-                String result = hardwareComparationService.compareCPU(cpuUser, cpuGame);
-                cpuMinimumRequirements.put(cpuOption, result);
-            }
-        }
-
-        // Recomendado
-        if (recommendedRequirements != null && recommendedRequirements.cpuOptions() != null) {
-            for (String cpuOption : recommendedRequirements.cpuOptions()) {
-                ComponentDTO cpuGame = new ComponentDTO(cpuOption, "game");
-                String result = hardwareComparationService.compareCPU(cpuUser, cpuGame);
-                cpuRecommendedRequirements.put(cpuOption, result);
-            }
-        }
+        Boolean ramRecommended = recommended != null
+                && recommended.ramGb() != null
+                ? userPcInfoDTO.ram() >= recommended.ramGb()
+                : null;
 
         return new RequirementsResultsDTO(
-                cpuMinimumRequirements,
-                cpuRecommendedRequirements,
-                gpuMinimumRequirements,
-                gpuRecommendedRequirements,
+                cpuMinimum,
+                cpuRecommended,
+                gpuMinimum,
+                gpuRecommended,
                 ramMinimum,
                 ramRecommended
         );
     }
 
+    private Map<String, ComponentRequirementResultDTO> compareCPUOptions(
+            RequirementsSetDTO requirements,
+            UserPcInfoDTO userPcInfoDTO
+    ) throws IOException, InterruptedException {
+
+        Map<String, ComponentRequirementResultDTO> results = new HashMap<>();
+
+        if (requirements == null || requirements.cpuOptions() == null) {
+            return results;
+        }
+
+        ComponentDTO userCPU = new ComponentDTO(userPcInfoDTO.cpu(), "user");
+
+        for (String option : requirements.cpuOptions()) {
+            if (option == null || option.isBlank()) {
+                continue;
+            }
+
+            ComponentDTO gameCPU = new ComponentDTO(option, "game");
+            String result = hardwareComparationService.compareCPU(userCPU, gameCPU);
+            results.put(option, createResult(result));
+        }
+
+        return results;
+    }
+
+    private Map<String, ComponentRequirementResultDTO> compareGPUOptions(
+            RequirementsSetDTO requirements,
+            UserPcInfoDTO userPcInfoDTO
+    ) throws IOException, InterruptedException {
+
+        Map<String, ComponentRequirementResultDTO> results = new HashMap<>();
+
+        if (requirements == null || requirements.gpuOptions() == null) {
+            return results;
+        }
+
+        ComponentDTO userGPU = new ComponentDTO(userPcInfoDTO.gpu(), "user");
+
+        for (String option : requirements.gpuOptions()) {
+            if (option == null || option.isBlank()) {
+                continue;
+            }
+
+            ComponentDTO gameGPU = new ComponentDTO(option, "game");
+            String result = hardwareComparationService.compareGPU(userGPU, gameGPU);
+            results.put(option, createResult(result));
+        }
+
+        return results;
+    }
+
+    private ComponentRequirementResultDTO createResult(String result) {
+        if (result == null || "N/A".equalsIgnoreCase(result)) {
+            return new ComponentRequirementResultDTO(false, false);
+        }
+
+        return new ComponentRequirementResultDTO(Boolean.parseBoolean(result), true);
+    }
+
+    public boolean meetsMinimumRequirements(
+            RequirementsResultsDTO compatibility
+    ) {
+        if (compatibility == null) {
+            return true;
+        }
+
+        Boolean cpu = evaluateOptions(compatibility.cpuMinimumRequirements());
+        Boolean gpu = evaluateOptions(compatibility.gpuMinimumRequirements());
+
+        // null é pq é desconhecido, portanto nao elimina o jogo
+        return !Boolean.FALSE.equals(cpu)
+                && !Boolean.FALSE.equals(gpu)
+                && !Boolean.FALSE.equals(compatibility.ramMinimum());
+    }
+
+    private Boolean evaluateOptions(
+            Map<String, ComponentRequirementResultDTO> results
+    ) {
+        if (results == null || results.isEmpty()) {
+            return null;
+        }
+
+        boolean hasAvailableComparison = false;
+
+        for (ComponentRequirementResultDTO result : results.values()) {
+            if (result == null || !result.available()) {
+                continue;
+            }
+
+            hasAvailableComparison = true;
+
+            if (result.compatible()) {
+                return true;
+            }
+        }
+
+        return hasAvailableComparison ? false : null;
+    }
+
+    // pontuacao hardware dos requisitos recomendados
+    public double calculateHardwareScore(
+            RequirementsResultsDTO compatibility
+    ) {
+        if (compatibility == null) {
+            return 0.5;
+        }
+
+        Boolean cpu = evaluateOptions(compatibility.cpuRecommendedRequirements());
+        Boolean gpu = evaluateOptions(compatibility.gpuRecommendedRequirements());
+        Boolean ram = compatibility.ramRecommended();
+
+        double total = 0;
+        int evaluatedComponents = 0;
+
+        if (cpu != null) {
+            total += cpu ? 1.0 : 0.0;
+            evaluatedComponents++;
+        }
+
+        if (gpu != null) {
+            total += gpu ? 1.0 : 0.0;
+            evaluatedComponents++;
+        }
+
+        if (ram != null) {
+            total += ram ? 1.0 : 0.0;
+            evaluatedComponents++;
+        }
+
+        // Sem dados recomendados: pontuação neutra.
+        if (evaluatedComponents == 0) {
+            return 0.5;
+        }
+
+        return total / evaluatedComponents;
+    }
 }

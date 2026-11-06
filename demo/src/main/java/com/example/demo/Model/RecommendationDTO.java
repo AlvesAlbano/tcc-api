@@ -10,6 +10,7 @@ public record RecommendationDTO(
         Integer releaseYear,
         List<String> tags,
         GameRequirementsDTO requirements,
+        RequirementsResultsDTO compatibility,
         Double score
 ) {
 }

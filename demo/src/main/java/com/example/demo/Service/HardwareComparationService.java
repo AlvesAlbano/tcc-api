@@ -11,17 +11,20 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class HardwareComparationService {
 
     private final ScrapperCPU scrapperCPU;
-
     private final ScrapperGPU scrapperGPU;
-
     private final CompareGPU compareGPU;
-
     private final CompareCPU compareCPU;
+
+    private final Map<String, String> cpuComparisonCache = new ConcurrentHashMap<>();
+
+    private final Map<String, String> gpuComparisonCache = new ConcurrentHashMap<>();
 
     public HardwareComparationService(ScrapperCPU scrapperCPU, ScrapperGPU scrapperGPU, CompareGPU compareGPU, CompareCPU compareCPU) {
         this.scrapperCPU = scrapperCPU;
@@ -30,37 +33,79 @@ public class HardwareComparationService {
         this.compareCPU = compareCPU;
     }
 
-    public String compareCPU(ComponentDTO cpuUser, ComponentDTO cpuGame) throws IOException, InterruptedException {
+    public String compareCPU(
+            ComponentDTO cpuUser,
+            ComponentDTO cpuGame
+    ) throws IOException, InterruptedException {
+
+        String cacheKey = cpuUser.name() + "->" + cpuGame.name();
+        String cachedResult = cpuComparisonCache.get(cacheKey);
+
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        String result = compareCPUWithoutCache(cpuUser, cpuGame);
+        cpuComparisonCache.put(cacheKey, result);
+
+        return result;
+    }
+
+    private String compareCPUWithoutCache(
+            ComponentDTO cpuUser,
+            ComponentDTO cpuGame
+    ) throws IOException, InterruptedException {
+
         String cpuGameName = cpuGame.name();
-        String formatedcpuGameName = cleanHardwareString(cpuGame.name());
+        String formattedCpuGameName = cleanHardwareString(cpuGameName);
 
         if (cpuExistInScrapper(cpuGameName)) {
-//            return compareCPU.comparar(cpuUser, cpuGame);
             return String.valueOf(compareCPU.comparar(cpuUser, cpuGame));
-        } else if (cpuExistInScrapper(formatedcpuGameName)) {
 
-            ComponentDTO cpuGameFormated = new ComponentDTO(formatedcpuGameName, "game");
+        } else if (cpuExistInScrapper(formattedCpuGameName)) {
 
-            return String.valueOf(compareCPU.comparar(cpuUser, cpuGameFormated));
+            ComponentDTO formattedCpuGame = new ComponentDTO(formattedCpuGameName, "game");
+
+            return String.valueOf(compareCPU.comparar(cpuUser, formattedCpuGame));
         }
 
         return "N/A";
     }
 
-    public String compareGPU(ComponentDTO gpuUser, ComponentDTO gpuGame) throws IOException, InterruptedException {
+    public String compareGPU(
+            ComponentDTO gpuUser,
+            ComponentDTO gpuGame
+    ) throws IOException, InterruptedException {
+
+        String cacheKey = gpuUser.name() + "->" + gpuGame.name();
+        String cachedResult = gpuComparisonCache.get(cacheKey);
+
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        String result = compareGPUWithoutCache(gpuUser, gpuGame);
+        gpuComparisonCache.put(cacheKey, result);
+
+        return result;
+    }
+
+    private String compareGPUWithoutCache(
+            ComponentDTO gpuUser,
+            ComponentDTO gpuGame
+    ) throws IOException, InterruptedException {
+
         String gpuGameName = gpuGame.name();
-        String formatedGpuGameName = cleanHardwareString(gpuGame.name());
+        String formattedGpuGameName = cleanHardwareString(gpuGameName);
 
         if (gpuExistInScrapper(gpuGameName)) {
-//            return compareGPU.comparar(gpuUser, gpuGame);
-
             return String.valueOf(compareGPU.comparar(gpuUser, gpuGame));
-        } else if (gpuExistInScrapper(formatedGpuGameName)) {
 
-            ComponentDTO gpuGameFormated = new ComponentDTO(formatedGpuGameName, "game");
+        } else if (gpuExistInScrapper(formattedGpuGameName)) {
 
-//            return compareGPU.comparar(gpuUser, gpuGameFormated);
-            return String.valueOf(compareGPU.comparar(gpuUser, gpuGameFormated));
+            ComponentDTO formattedGpuGame = new ComponentDTO(formattedGpuGameName, "game");
+
+            return String.valueOf(compareGPU.comparar(gpuUser, formattedGpuGame));
         }
 
         return "N/A";

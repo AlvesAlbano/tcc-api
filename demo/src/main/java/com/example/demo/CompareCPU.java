@@ -91,7 +91,7 @@ public class CompareCPU {
             System.out.println("Emoji de X");
         }
 
-        return cpuUserScore > cpuGameScore;
+        return cpuUserScore >= cpuGameScore;
     }
 
     private boolean isUserCpu(ComponentDTO componentDTO, ComponentScrapperDTO componentScrapperDTO) throws IOException, InterruptedException {

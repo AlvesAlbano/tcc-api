@@ -90,7 +90,7 @@ public class CompareGPU {
             System.out.println("Emoji de X");
         }
 
-        return gpuUserScore > gpuGameScore;
+        return gpuUserScore >= gpuGameScore;
     }
 
     private boolean isUserGpu(ComponentDTO componentDTO, ComponentScrapperDTO componentScrapperDTO) throws IOException, InterruptedException {
