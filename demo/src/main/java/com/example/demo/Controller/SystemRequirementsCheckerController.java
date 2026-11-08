@@ -21,7 +21,14 @@ public class SystemRequirementsCheckerController {
     }
 
     @PostMapping("check-result")
-    @Operation(summary = "Retorna os requisitos minimos e recomendados de um jogo", description = "(Ex: 3259780)")
+    @Operation(
+            summary = "Retorna um json contendo os resultados da comparação entre o hardware do usuario e jogo, False = Hardware do jogo é melhor, True = Hardware do usuario é melhor, N/A = Hardware nã encontrado no nanoreview",
+            description = "(AppId jogo: 3259780, Json teste = {\n" +
+                    "    \"cpu\": \"amd-ryzen-3-3100\",\n" +
+                    "    \"gpu\": \"geforce-mx230\",\n" +
+                    "    \"ram\": 16\n" +
+                    "})"
+    )
     public RequirementsResultsDTO getRequirementsCheckerResults(
             @RequestParam(name = "appId") int appId,
             @RequestBody UserPcInfoDTO userPcInfoDTO) throws IOException, InterruptedException {

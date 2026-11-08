@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -57,8 +58,13 @@ public class RecommendationService {
 
         UserProfileDTO profile = profileService.buildProfile(steamId);
         List<Game> catalog = gameRepository.findAll();
+//        List<Game> catalog = gameRepository.findAll()
+//                .reversed()
+//                .stream()
+//                .limit(50)
+//                .toList();
         List<RecommendationDTO> recommendations = new ArrayList<>();
-
+        int fds = 0;
         for (Game game : catalog) {
             // Não recomenda jogos que o usuário já possui.
             if (profile.ownedGames().contains(game.getAppId())) {
@@ -105,6 +111,12 @@ public class RecommendationService {
                             userPcInfoDTO
                     );
 
+            fds++;
+            System.out.printf("i = %d/%d",fds,catalog.size());
+            System.out.printf("\t,id do jogo: %d\n",game.getAppId());
+            System.out.printf("\nrequisitos do jogo: %s\n",requirements);
+            System.out.printf("\ncompatibilidade do jogo: %s\n",compatibility);
+
             // Descarta jogos comprovadamente incompatíveis
             // com algum requisito mínimo.
             if (!systemRequirementsCheckerService.meetsMinimumRequirements(compatibility)) {
@@ -139,6 +151,7 @@ public class RecommendationService {
         return recommendations.stream()
                 .limit(MAX_RECOMMENDATIONS)
                 .toList();
+//        return recommendations;
     }
 
     private double calculateCossineSimilarity(UserProfileDTO profile, Game game) {

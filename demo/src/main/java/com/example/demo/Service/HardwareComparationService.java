@@ -7,9 +7,11 @@ import com.example.demo.Model.ComponentDTO;
 import com.example.demo.Model.ComponentJsonDTO;
 import com.example.demo.ScrapperCPU;
 import com.example.demo.ScrapperGPU;
+import com.example.demo.Util.FormatationComponentUtil;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,10 +59,16 @@ public class HardwareComparationService {
     ) throws IOException, InterruptedException {
 
         String cpuGameName = cpuGame.name();
+
+        cpuGameName = FormatationComponentUtil.formatCpuName(cpuGameName);
+        cpuGameName = FormatationComponentUtil.cpuAddMissingInfo(cpuGameName);
+
         String formattedCpuGameName = cleanHardwareString(cpuGameName);
 
         if (cpuExistInScrapper(cpuGameName)) {
-            return String.valueOf(compareCPU.comparar(cpuUser, cpuGame));
+            ComponentDTO formattedCpuGame = new ComponentDTO(cpuGameName, "game");
+
+            return String.valueOf(compareCPU.comparar(cpuUser, formattedCpuGame));
 
         } else if (cpuExistInScrapper(formattedCpuGameName)) {
 
@@ -68,6 +76,7 @@ public class HardwareComparationService {
 
             return String.valueOf(compareCPU.comparar(cpuUser, formattedCpuGame));
         }
+        System.out.printf("%s CPU do jogo não existe no nanoreview\n",cpuGameName);
 
         return "N/A";
     }
@@ -96,10 +105,17 @@ public class HardwareComparationService {
     ) throws IOException, InterruptedException {
 
         String gpuGameName = gpuGame.name();
+
+        gpuGameName = FormatationComponentUtil.formatGpuName(gpuGameName);
+        gpuGameName = FormatationComponentUtil.gpuAddMissingInfo(gpuGameName);
+
         String formattedGpuGameName = cleanHardwareString(gpuGameName);
 
         if (gpuExistInScrapper(gpuGameName)) {
-            return String.valueOf(compareGPU.comparar(gpuUser, gpuGame));
+
+            ComponentDTO formattedGpuGame = new ComponentDTO(gpuGameName, "game");
+
+            return String.valueOf(compareGPU.comparar(gpuUser, formattedGpuGame));
 
         } else if (gpuExistInScrapper(formattedGpuGameName)) {
 
@@ -107,6 +123,7 @@ public class HardwareComparationService {
 
             return String.valueOf(compareGPU.comparar(gpuUser, formattedGpuGame));
         }
+        System.out.printf("%s GPU do jogo não existe no nanoreview\n",gpuGameName);
 
         return "N/A";
     }

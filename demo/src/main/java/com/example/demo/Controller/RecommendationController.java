@@ -4,6 +4,7 @@ import com.example.demo.Model.RecommendationDTO;
 import com.example.demo.Model.UserPcInfoDTO;
 import com.example.demo.Service.RecommendationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,10 @@ public class RecommendationController {
 
     // Modo descoberta
     @GetMapping("/{steamId}")
+    @Operation(
+            summary = "Retorna os jogos recomendados para o usuario",
+            description = "Ex: steamId = 76561198381922330"
+    )
     public List<RecommendationDTO> recommend(
             @PathVariable String steamId
     ) throws IOException, InterruptedException {
@@ -31,6 +36,14 @@ public class RecommendationController {
 
     // Modo hardware
     @PostMapping("/{steamId}")
+    @Operation(
+            summary = "Retorna os jogos recomendados para o usuario",
+            description = "Ex: steamId = 76561198381922330, Json = {\n" +
+                    "    \"cpu\": \"amd-ryzen-3-3100\",\n" +
+                    "    \"gpu\": \"geforce-mx230\",\n" +
+                    "    \"ram\": 16\n" +
+                    "}"
+    )
     public List<RecommendationDTO> recommendWithHardware(
             @PathVariable String steamId,
             @RequestBody UserPcInfoDTO userPcInfoDTO
