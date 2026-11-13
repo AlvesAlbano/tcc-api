@@ -1,3 +1,4 @@
+
 package com.example.demo.Service;
 
 import com.example.demo.Model.GameRequirementsDTO;
@@ -13,10 +14,39 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Component
 public class SteamRequirementsParser {
+
+    private static final Pattern ALTERNATIVE_SEPARATOR = Pattern.compile(
+            "(?i)\\s+or\\s+|\\s*/\\s*|\\s*\\|\\s*|\\s*;\\s*"
+                    + "|,\\s*(?=(?:nvidia|amd|ati|intel|geforce|"
+                    + "radeon|gtx|rtx|gts)\\b)"
+    );
+
+    private static final Pattern CPU_MODEL = Pattern.compile(
+            "(?i).*(?:"
+                    + "intel\\s+(?:core|pentium|celeron|xeon)\\b"
+                    + "|amd\\s+(?:fx|phenom|ryzen|athlon|sempron)\\b"
+                    + "|core\\s+i[3579]\\b"
+                    + "|pentium\\s+[a-z0-9-]+"
+                    + "|celeron\\s+[a-z0-9-]+"
+                    + "|xeon\\s+[a-z0-9-]+"
+                    + "|ryzen\\s+[a-z0-9-]+"
+                    + "|phenom\\s+[a-z0-9-]+"
+                    + "|athlon\\s+[a-z0-9-]+"
+                    + "|fx[- ]?\\d{3,}"
+                    + ").*"
+    );
+
+    private static final Pattern GPU_MODEL = Pattern.compile(
+            "(?i).*(?:"
+                    + "nvidia\\b|geforce\\b|gtx\\b|rtx\\b|gts\\b"
+                    + "|radeon\\b|ati\\s+"
+                    + "|amd\\s+radeon\\b"
+                    + "|intel\\s+(?:iris|uhd|hd\\s+graphics)\\b"
+                    + ").*"
+    );
 
     public GameRequirementsDTO parse(
             String minimumHtml,
@@ -56,7 +86,6 @@ public class SteamRequirementsParser {
             }
 
             String label = strong.text().replace(":", "").trim();
-
             String value = item.text();
 
             if (label.equalsIgnoreCase("Processor")) {
@@ -81,59 +110,149 @@ public class SteamRequirementsParser {
         );
     }
 
+
     private List<String> parseAlternatives(String value, String label) {
 
-        final String[] separationSymbols = {
-                ",",
-                "or",
-                "/",
-        };
+        String cleanValue = value.replaceFirst(
+                "(?i)" + Pattern.quote(label) + "\\s*:",
+                ""
+        ).trim();
 
-        String cleanValue = value
-                .replaceFirst(
-                        "(?i)" + Pattern.quote(label) + "\\s*:",
-                        ""
-                )
+        String[] alternatives = ALTERNATIVE_SEPARATOR.split(cleanValue);
+
+        List<String> normalizedOptions = new java.util.ArrayList<>();
+
+        String previousGpuManufacturer = null;
+
+        for (String alternative : alternatives) {
+
+            System.out.println("\n========== DEBUG PARSER ==========");
+            System.out.println("Alternativa original: [" + alternative + "]");
+
+            String cleaned = cleanHardwareString(alternative);
+
+            System.out.println("Após cleanHardwareString: [" + cleaned + "]");
+
+            if (cleaned.isBlank()) {
+                continue;
+            }
+
+            if (label.equalsIgnoreCase("Processor")) {
+                if (cleaned.matches("(?i)^core\\s+i[3579]\\b.*")) {
+                    cleaned = "Intel " + cleaned;
+                }
+
+                System.out.println("Antes da validação: [" + cleaned + "]");
+
+                if (isValidHardwareModel(cleaned, label)) {
+                    String formatted = FormatationComponentUtil.formatCpuName(cleaned);
+
+                    System.out.println("Resultado final: [" + formatted + "]");
+
+                    normalizedOptions.add(formatted);
+                }
+
+            } else if (label.equalsIgnoreCase("Graphics")) {
+
+                String lower = cleaned.toLowerCase();
+
+                if (lower.matches("\\d{3,4}")) {
+                    if (previousGpuManufacturer != null) {
+                        cleaned = previousGpuManufacturer + " " + cleaned;
+                    }
+                }
+
+                if (lower.contains("nvidia") || lower.contains("geforce")) {
+                    previousGpuManufacturer = "geforce";
+
+                    if (lower.matches(".*\\b\\d{3,4}\\b.*")
+                            && !lower.contains("geforce")) {
+                        cleaned = "geforce " + cleaned;
+                    }
+                } else if (lower.contains("ati") || lower.contains("radeon")) {
+                    previousGpuManufacturer = "ati";
+                }
+
+                if (isValidHardwareModel(cleaned, label)) {
+                    normalizedOptions.add(
+                            FormatationComponentUtil.formatGpuName(cleaned)
+                    );
+                }
+            }
+        }
+
+        return normalizedOptions.stream()
+                .distinct()
+                .toList();
+    }
+
+
+    private String cleanHardwareString(String value) {
+
+        String cleaned = value;
+
+        // Remove expressões genéricas que não representam modelos.
+        cleaned = cleaned.replaceAll(
+                "(?i)\\b(?:or\\s+better|and\\s+better|"
+                        + "or\\s+equivalent|equivalent(?:\\s+processor)?)\\b",
+                ""
+        );
+
+        // Remove frequências, por exemplo: 2.8 GHz.
+        cleaned = cleaned.replaceAll(
+                "(?i)\\b\\d+(?:\\.\\d+)?\\s*GHz\\b",
+                ""
+        );
+
+        // Remove memória de vídeo, por exemplo: 2GB VRAM ou 512 MB.
+        cleaned = cleaned.replaceAll(
+                "(?i)\\b\\d+\\s*(?:GB|MB)\\s*"
+                        + "(?:VRAM|video\\s+memory|graphics\\s+memory)?\\b",
+                ""
+        );
+
+        // Remove conectivos que podem sobrar após remover especificações.
+        cleaned = cleaned.replaceAll(
+                "(?i)\\bwith\\b",
+                ""
+        );
+
+        // Remove informações de Shader Model e DirectX.
+        cleaned = cleaned.replaceAll(
+                "(?i)\\bshader\\s+model\\s*[\\d.]+\\b",
+                ""
+        );
+
+        cleaned = cleaned.replaceAll(
+                "(?i)\\bDirectX\\s*\\d+(?:\\.\\d+)?\\b",
+                ""
+        );
+
+        // Remove símbolos e espaços excedentes.
+        cleaned = cleaned
+                .replaceAll("[®™℠©]", "")
+                .replaceAll("\\s+", " ")
+                .replaceAll("^[\\s,;:/-]+|[\\s,;:/-]+$", "")
                 .trim();
 
-        String regex = Arrays.stream(separationSymbols)
-                .map(symbol -> {
-                    // Se for uma palavra (ex: "or"), garantimos que ela seja cercada por espaços ou limites
-                    if (symbol.matches("[a-zA-Z]+")) {
-                        return "\\s+" + Pattern.quote(symbol) + "\\s+";
-                    } else {
-                        // Se for pontuação/símbolo (ex: ",", "/"), permitimos espaços opcionais ao redor
-                        return "\\s*" + Pattern.quote(symbol) + "\\s*";
-                    }
-                })
-                .collect(Collectors.joining("|"));
+        return cleaned;
+    }
 
-        return Arrays.stream(
-                        cleanValue.split("(?i)" + regex)
-                )
-                .map(String::trim)
-                .filter(option -> !option.isBlank())
-//                .map(this::cleanHardwareString)
-//                .filter(option -> !option.isBlank())
-                .map(option -> {
-                            if (label.equalsIgnoreCase("Processor")) {
-                                return FormatationComponentUtil.formatCpuName(option);
-                            } else if (label.equalsIgnoreCase("Graphics")) {
-                                return FormatationComponentUtil.formatGpuName(option);
-                            }
+    private boolean isValidHardwareModel(String option, String label) {
+        if (label.equalsIgnoreCase("Processor")) {
+            return CPU_MODEL.matcher(option).matches();
+        }
 
-                            return option;
-                        }
-                )
-                .toList();
+        if (label.equalsIgnoreCase("Graphics")) {
+            return GPU_MODEL.matcher(option).matches();
+        }
+
+        return false;
     }
 
     private Integer parseMemory(String value) {
         Matcher matcher = Pattern
-                .compile(
-                        "(\\d+)\\s*GB",
-                        Pattern.CASE_INSENSITIVE
-                )
+                .compile("(\\d+)\\s*GB", Pattern.CASE_INSENSITIVE)
                 .matcher(value);
 
         if (matcher.find()) {
@@ -145,10 +264,7 @@ public class SteamRequirementsParser {
 
     private Integer parseStorage(String value) {
         Matcher matcher = Pattern
-                .compile(
-                        "(\\d+)\\s*GB",
-                        Pattern.CASE_INSENSITIVE
-                )
+                .compile("(\\d+)\\s*GB", Pattern.CASE_INSENSITIVE)
                 .matcher(value);
 
         if (matcher.find()) {
@@ -157,6 +273,4 @@ public class SteamRequirementsParser {
 
         return null;
     }
-
-
 }

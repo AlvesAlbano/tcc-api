@@ -33,8 +33,7 @@ public class GameRequirementsService {
         RequirementsSetDTO minimum = null;
         RequirementsSetDTO recommended = null;
 
-        List<GameRequirement> requirements =
-                requirementRepository.findAllByGameAppId(appId);
+        List<GameRequirement> requirements = requirementRepository.findAllByGameAppId(appId);
 
         for (GameRequirement item : requirements) {
 

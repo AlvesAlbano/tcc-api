@@ -15,6 +15,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -138,6 +141,144 @@ public class GameCatalogService {
             saveRequirement(game, RequirementType.RECOMMENDED, parsed.recommended());
         }
         return true;
+    }
+
+    public GameRequirementsDTO previewRequirements(int appId) throws Exception {
+        JsonNode info = steamClient.getGameInfo(appId);
+        waitBetweenRequests();
+
+        if (info == null || info.isMissingNode() || info.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Não foi possível encontrar os dados do jogo " + appId
+            );
+        }
+
+        JsonNode pcRequirements = info.path("pc_requirements");
+
+        if (!pcRequirements.isObject()) {
+            throw new IllegalArgumentException(
+                    "O jogo não possui requisitos de PC disponíveis na Steam."
+            );
+        }
+
+        String minimumHtml = pcRequirements.path("minimum").asText("");
+        String recommendedHtml = pcRequirements.path("recommended").asText("");
+
+        System.out.println("========== STEAM REQUIREMENTS ==========");
+        System.out.println("Minimum HTML:");
+        System.out.println(minimumHtml);
+        System.out.println("Recommended HTML:");
+        System.out.println(recommendedHtml);
+        System.out.println("Minimum length: " + minimumHtml.length());
+        System.out.println("Recommended length: " + recommendedHtml.length());
+        System.out.println("========================================");
+
+        return requirementsParser.parse(minimumHtml, recommendedHtml);
+    }
+
+    public boolean refreshRequirementsForGame(int appId) throws Exception {
+
+        Game game = gameRepository.findById(appId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Jogo não encontrado no catálogo: " + appId
+                ));
+
+        JsonNode info = steamClient.getGameInfo(appId);
+        waitBetweenRequests();
+
+        if (info == null || info.isMissingNode() || info.isEmpty()) {
+            return false;
+        }
+
+        JsonNode pcRequirements = info.path("pc_requirements");
+
+        if (!pcRequirements.isObject()) {
+            return false;
+        }
+
+        String minimumHtml = pcRequirements.path("minimum").asText("");
+        String recommendedHtml = pcRequirements.path("recommended").asText("");
+
+        GameRequirementsDTO parsed = requirementsParser.parse(
+                minimumHtml,
+                recommendedHtml
+        );
+
+        boolean hasMinimumData = hasRequirementData(parsed.minimum());
+        boolean hasRecommendedData = hasRequirementData(parsed.recommended());
+
+        if (!hasMinimumData && !hasRecommendedData) {
+            return false;
+        }
+
+        if (hasMinimumData) {
+            saveRequirement(game, RequirementType.MINIMUM, parsed.minimum());
+        }
+
+        if (hasRecommendedData) {
+            saveRequirement(game, RequirementType.RECOMMENDED, parsed.recommended());
+        }
+
+        System.out.println("Requisitos atualizados: " + game.getName()
+                + " (AppID: " + appId + ")");
+
+        return true;
+    }
+
+    private boolean hasRequirementData(RequirementsSetDTO dto) {
+        return dto != null && (
+                !dto.cpuOptions().isEmpty()
+                        || !dto.gpuOptions().isEmpty()
+                        || dto.ramGb() != null
+                        || dto.storageGb() != null
+        );
+    }
+
+    public String refreshRequirementsBatch(int pageNumber, int batchSize) {
+
+        Page<Game> gamesPage = gameRepository.findAll(
+                PageRequest.of(
+                        pageNumber,
+                        batchSize,
+                        Sort.by(Sort.Direction.ASC, "appId")
+                )
+        );
+
+        int updated = 0;
+        int skipped = 0;
+        int errors = 0;
+
+        for (Game game : gamesPage.getContent()) {
+            try {
+                boolean success = refreshRequirementsForGame(game.getAppId());
+
+                if (success) {
+                    updated++;
+                } else {
+                    skipped++;
+                }
+
+            } catch (Exception ex) {
+                errors++;
+
+                System.err.println(
+                        "Erro ao atualizar requisitos do jogo "
+                                + game.getAppId() + ": " + ex.getMessage()
+                );
+            }
+        }
+
+        return String.format(
+                "Lote finalizado! Página: %d | Jogos encontrados: %d | "
+                        + "Atualizados: %d | Sem requisitos: %d | Erros: %d | "
+                        + "Total de páginas: %d",
+                pageNumber,
+                gamesPage.getNumberOfElements(),
+                updated,
+                skipped,
+                errors,
+                gamesPage.getTotalPages()
+        );
     }
 
     private void saveRequirement(Game game, RequirementType type, RequirementsSetDTO dto) throws Exception {

@@ -24,22 +24,21 @@ public final class FormatationComponentUtil {
     public FormatationComponentUtil() {
     }
 
+
     public static String formatCpuName(String cpuName) {
-        System.out.printf("Antes da formatação (CPU): %s\n", cpuName);
+        System.out.printf("Antes da formatação (CPU): %s%n", cpuName);
 
-        for (String keyWord : cpuKeyWords) {
-            cpuName = cpuName.replaceAll(
-                    "(?i)" + java.util.regex.Pattern.quote(keyWord),
-                    ""
-            );
-        }
-
+        // Remove apenas símbolos de marca registrada.
         cpuName = cpuName
-                .trim()
-                .replace(" ", "-")
+                .replaceAll("[®™©]", "")
+                .trim();
+
+        // Normaliza espaços e transforma em slug.
+        cpuName = cpuName
+                .replaceAll("\\s+", "-")
                 .toLowerCase();
 
-        System.out.printf("Depois da formatação (CPU): %s\n", cpuName);
+        System.out.printf("Depois da formatação (CPU): %s%n", cpuName);
         return cpuName;
     }
 

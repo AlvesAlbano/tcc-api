@@ -6,6 +6,7 @@ import com.example.demo.Entity.RequirementType;
 import com.example.demo.Entity.Tag;
 import com.example.demo.Model.*;
 import com.example.demo.Repository.GameRepository;
+import com.example.demo.Model.RecommendationCandidate;
 import com.example.demo.Repository.GameRequirementRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,9 +22,9 @@ import java.util.Map;
 @Service
 public class RecommendationService {
 
-    private static final double SIMILARITY_WEIGHT = 0.70;
-    private static final double HARDWARE_WEIGHT = 0.30;
-    private static final int MAX_RECOMMENDATIONS = 20;
+    private static final int DEFAULT_RECOMMENDATIONS = 20;
+    private static final int MIN_RECOMMENDATIONS = 4;
+    private static final int MAX_RECOMMENDATIONS = 50;
 
     private final ProfileService profileService;
     private final GameRepository gameRepository;
@@ -42,25 +43,46 @@ public class RecommendationService {
         this.systemRequirementsCheckerService = systemRequirementsCheckerService;
     }
 
-    // Modo descoberta: somente gosto do usuário.
+    // Modo descoberta: somente gosto do usuário (qtd padrão)
     @Transactional(readOnly = true)
     public List<RecommendationDTO> recommendGames(String steamId) throws IOException, InterruptedException {
-        return recommendGames(steamId, null);
+        return recommendGames(steamId, null, DEFAULT_RECOMMENDATIONS);
     }
 
-    // Modo hardware: gosto do usuário + compatibilidade.
+    // Modo descoberta: somente gosto do usuário
+    @Transactional(readOnly = true)
+    public List<RecommendationDTO> recommendGames(String steamId, int quantity) throws IOException, InterruptedException {
+        return recommendGames(steamId, null, quantity);
+    }
+
+    // Modo hardware: gosto + compatibilidade (qtd padrão)
     @Transactional(readOnly = true)
     public List<RecommendationDTO> recommendGames(
             String steamId,
             UserPcInfoDTO userPcInfoDTO
     ) throws IOException, InterruptedException {
+        return recommendGames(steamId, userPcInfoDTO, DEFAULT_RECOMMENDATIONS);
+    }
+
+    // Modo hardware: gosto do usuário + compatibilidade
+    @Transactional(readOnly = true)
+    public List<RecommendationDTO> recommendGames(
+            String steamId,
+            UserPcInfoDTO userPcInfoDTO,
+            int quantity
+    ) throws IOException, InterruptedException {
+
+        if (quantity < MIN_RECOMMENDATIONS || quantity > MAX_RECOMMENDATIONS) {
+            throw new IllegalArgumentException(
+                    "A quantidade deve estar entre 5 e 50."
+            );
+        }
 
         UserProfileDTO profile = profileService.buildProfile(steamId);
         List<Game> catalog = gameRepository.findAll();
-        List<RecommendationDTO> recommendations = new ArrayList<>();
+        List<RecommendationCandidate> candidates = new ArrayList<>();
 
         for (Game game : catalog) {
-            // Não recomenda jogos que o usuário já possui.
             if (profile.ownedGames().contains(game.getAppId())) {
                 continue;
             }
@@ -77,43 +99,34 @@ public class RecommendationService {
                     .sorted()
                     .toList();
 
+            candidates.add(
+                    new RecommendationCandidate(
+                            game,
+                            tags,
+                            similarityScore
+                    )
+            );
+        }
+
+        candidates.sort(
+                Comparator.comparingDouble(RecommendationCandidate::score)
+                        .reversed()
+        );
+
+        List<RecommendationCandidate> selectedGames = candidates.stream()
+                .limit(quantity)
+                .toList();
+
+        List<RecommendationDTO> recommendations = new ArrayList<>();
+
+        for (RecommendationCandidate candidate : selectedGames) {
+            Game game = candidate.game();
             GameRequirementsDTO requirements = gameRequirementsService.getRequirements(game.getAppId());
+            RequirementsResultsDTO compatibility = null;
 
-            // MODO DESCOBERTA
-            if (userPcInfoDTO == null) {
-                recommendations.add(
-                        new RecommendationDTO(
-                                game.getAppId(),
-                                game.getName(),
-                                game.getShortDescription(),
-                                game.getImageUrl(),
-                                game.getReleaseYear(),
-                                tags,
-                                requirements,
-                                null,
-                                similarityScore
-                        )
-                );
-
-                continue;
+            if (userPcInfoDTO != null) {
+                compatibility = systemRequirementsCheckerService.compareRequirements(requirements, userPcInfoDTO);
             }
-
-            // MODO HARDWARE
-            RequirementsResultsDTO compatibility =
-                    systemRequirementsCheckerService.compareRequirements(
-                            requirements,
-                            userPcInfoDTO
-                    );
-
-            // Descarta jogos comprovadamente incompatíveis
-            // com algum requisito mínimo.
-            if (!systemRequirementsCheckerService.meetsMinimumRequirements(compatibility)) {
-                continue;
-            }
-
-            double hardwareScore = systemRequirementsCheckerService.calculateHardwareScore(compatibility);
-
-            double finalScore = (similarityScore * SIMILARITY_WEIGHT) + (hardwareScore * HARDWARE_WEIGHT);
 
             recommendations.add(
                     new RecommendationDTO(
@@ -122,23 +135,15 @@ public class RecommendationService {
                             game.getShortDescription(),
                             game.getImageUrl(),
                             game.getReleaseYear(),
-                            tags,
+                            candidate.tags(),
                             requirements,
                             compatibility,
-                            finalScore
+                            candidate.score()
                     )
             );
         }
 
-        // Ordena pela pontuação final.
-        recommendations.sort(
-                Comparator.comparingDouble(RecommendationDTO::score)
-                        .reversed()
-        );
-
-        return recommendations.stream()
-                .limit(MAX_RECOMMENDATIONS)
-                .toList();
+        return recommendations;
     }
 
     private double calculateCossineSimilarity(UserProfileDTO profile, Game game) {
